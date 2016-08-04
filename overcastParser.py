@@ -2,6 +2,7 @@ import requests
 import sys
 import os
 import sqlite3
+import overcastLogin
 from bs4 import BeautifulSoup
 
 # Send the HTML POST request required to change the saved location in the serverUpdate
@@ -12,6 +13,11 @@ def updateServers(player, time, version):
 
 # Open the internet session with the required cookies
 session = requests.session()
+# Login if not logged in
+if not os.path.isfile("%s\UUID.txt" % sys.path[0]):
+	print("No cookie detected, logging in!")
+	overcastLogin.login()
+
 uuid = open("%s\UUID.txt" % sys.path[0],"r")
 session.cookies.set("o",uuid.read())
 uuid.close()
