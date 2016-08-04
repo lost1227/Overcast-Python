@@ -22,7 +22,8 @@ conn = sqlite3.connect("%s\overcast.db" % sys.path[0])
 c = conn.cursor()
 c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='podcasts';")
 if (c.fetchall() == []):
-	c.execute("CREATE TABLE podcasts (ID int PRIMARY KEY, dataItemId INTEGER(15), time INTEGER, podcast VARCHAR(255), title VARCHAR(255), location VARCHAR(255));")
+	print("Creating new table!")
+	c.execute("CREATE TABLE podcasts (dataItemId INTEGER(15), time INTEGER, podcast VARCHAR(255), title VARCHAR(255), location VARCHAR(255));")
 
 res = raw_input("Download New?> ")
 while True:
@@ -61,10 +62,17 @@ while True:
 		# Set the update number to the one provided by the server
 		# This must be set by the return value of the updateServers function every time it is called
 		serverUpdate = audioPlayer.get('data-sync-version')
-
+		if not os.path.exists("%s\%s\" % (sys.path[0], selCastShow)):
+			os.makedirs("%s\%s\" % (sys.path[0], selCastShow))
+		with open ("%s\%s\%s.mp3" % (sys.path[0], selCastShow, audioPlayer.get("data-item-id")), "wb") as pFile:
+			pResponse = session.get(audioPlayer.find("source").get("src"))
+			for chunk in pResponse.iter_content(1024):
+				pFile.write(chunk)
+		
 		# Test code to see if setting the time works as expected
 		serverUpdate = updateServers(audioPlayer, raw_input("New Time?> "), serverUpdate)
 		print(serverUpdate)
+		
 		break
 	elif (res == "n"):
 		break

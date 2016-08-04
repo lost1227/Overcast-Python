@@ -1,4 +1,3 @@
-# This file connects to overcast.fm with the email and password you provide and gets a cookie that overcastParser uses
 import requests
 import sys
 s = requests.Session()
