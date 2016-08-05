@@ -40,8 +40,8 @@ if (c.fetchall() == []):
 	print("Creating new table!")
 	c.execute("CREATE TABLE podcasts (dataItemId INTEGER(15), time INTEGER, podcast VARCHAR(255), title VARCHAR(255), location VARCHAR(255));")
 
+res = input("Download New?> ")
 while True:
-	res = input("Download New?> ")
 	if (res == "y"):
 		# Download the Overcast Homepage
 		try:
@@ -51,11 +51,14 @@ while True:
 			break
 		# Parse the downloaded html
 		parsedOvercast = BeautifulSoup(mainPage.text,"html.parser")
-		allCasts = parsedOvercast.find_all("a", class_="episodecell")
+		allCasts = parsedOvercast.find_all("a", class_="feedcell")
 		podcastNum = 0
 		# Iterate through the list of podcasts
 		for podcast in allCasts:
-			print("%d.) %s: %s" % ((podcastNum + 1), podcast.find("div", class_="caption2 singleline").get_text(),podcast.find("div", class_="title singleline").get_text()))
+			try:
+				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text()))
+			except UnicodeEncodeError:
+				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text().encode('ascii','ignore')))
 			podcastNum += 1
 		podcastNum -= 1
 		while True:
@@ -68,7 +71,27 @@ while True:
 			except ValueError:
 				print("Invalid Number!")
 		selCast = allCasts[selectedCast]
-		selCastShow = selCast.find("div", class_="caption2 singleline").get_text()
+		selCastShow = selCast.find("div", class_="title").get_text()
+		selCastPage = session.get("httpS://overcast.fm%s" % selCast.get("href"))
+		selCastPageParsed = BeautifulSoup(selCastPage.text,"html.parser")
+		allCasts = selCastPageParsed.find_all("a", class_="extendedepisodecell")
+		podcastNum = 0
+		for podcast in allCasts:
+			try:
+				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text()))
+			except UnicodeEncodeError:
+				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text().encode('ascii','ignore').decode('ascii')))
+			podcastNum += 1
+		while True:
+			try:
+				# Select a podcast, catching any out-of-range entries
+				selectedCast = (int(input("Which podcast?> ")) - 1)
+				if ((selectedCast > podcastNum) or (selectedCast < 0)):
+					raise ValueError
+				break
+			except ValueError:
+				print("Invalid Number!")
+		selCast = allCasts[selectedCast]
 		selCastTitle = selCast.find("div", class_="title singleline").get_text()
 		print("You have selected %d which is %s: %s" % ((selectedCast + 1), selCastShow, selCastTitle))
 		# Download the podcast page
@@ -106,9 +129,11 @@ while True:
 				pFile.write(chunk)
 				counter += 1
 		c.execute("INSERT INTO podcasts VALUES (?, ?, ?, ?, ?);", [audioPlayer.get("data-item-id"),audioPlayer.get("data-start-time"),selCastShow,selCastTitle,"%s\\podcasts\\%s\\%s.mp3" % (sys.path[0], selCastShow, audioPlayer.get("data-item-id"))])
-		break
+		if not input("Push y to download another podcast >") == "y":
+			break
 	elif (res == "n"):
 		break
 	else:
 		print("Invalid entry!")
+		res = input("Download New?> ")
 conn.commit()
