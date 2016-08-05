@@ -58,7 +58,7 @@ while True:
 			try:
 				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text()))
 			except UnicodeEncodeError:
-				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text().encode('ascii','ignore')))
+				print("%d.) %s" % ((podcastNum + 1), podcast.find("div", class_="title").get_text().encode('ascii','ignore').decode('ascii')))
 			podcastNum += 1
 		podcastNum -= 1
 		while True:
