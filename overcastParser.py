@@ -99,9 +99,9 @@ while True:
 				print("Connection Error!")
 				break
 			counter = 0
-			total = round( int(podHeaders.headers.get("Content-Length")) / 1000, 2 )
+			total = round( int(podHeaders.headers.get("Content-Length")) / 1000000, 2 )
 			for chunk in pResponse.iter_content(2048):
-				downloaded = (round((2048 * counter) /1000, 2))
+				downloaded = (round((2048 * counter) /1000000, 2))
 				print("%gmb out of %gmb. %g%% percent." % (downloaded,total, round((downloaded / total) * 100, 2)), end="\r")
 				pFile.write(chunk)
 				counter += 1
