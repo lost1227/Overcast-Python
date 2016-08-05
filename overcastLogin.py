@@ -1,6 +1,6 @@
+import requests
+import sys
 def login():
-	import requests
-	import sys
 	s = requests.Session()
 	login = {'email': input("Enter your email> "), 'password': input("Enter your password> ")}
 	try:
