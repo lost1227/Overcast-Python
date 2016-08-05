@@ -7,7 +7,18 @@ import vlc
 from bs4 import BeautifulSoup
 
 # Send the HTML POST request required to change the saved location in the serverUpdate
+# time is the new time, href is the href of the podcast page
+def updateServersFirst(time, href):
+	podPage = session.get(href)
+	podPageParsed = BeautifulSoup(podPage.text,"html.parser")
+	player = podPageParsed.find(id="audioplayer")
+	update = session.post("https://overcast.fm/podcasts/set_progress/%s" % player.get('data-item-id'), headers = { "Content-Type": "application/x-www-form-urlencoded" }, data = {"p": time, "speed": "0", "v": player.get(version) } )
 	return update.text # the server provides the version number necessary to preform the next update request
+
+	
+def updateServers(time, dataId, version):
+	update = session.post("https://overcast.fm/podcasts/set_progress/%s" % dataId, headers = { "Content-Type": "application/x-www-form-urlencoded" }, data = {"p": time, "speed": "0", "v": version })
+	return update.text
 
 # Open the internet session with the required cookies
 session = requests.session()
@@ -16,9 +27,8 @@ if not os.path.isfile("%s\\UUID.txt" % sys.path[0]):
 	print("No cookie detected, logging in!")
 	overcastLogin.login()
 
-uuid = open("%s\\UUID.txt" % sys.path[0],"r")
-session.cookies.set("o",uuid.read())
-uuid.close()
+with open("%s\\UUID.txt" % sys.path[0],"r") as uuid:
+	session.cookies.set("o",uuid.read())
 
 
 # An sqlite database will be used to keep track of the downloaded podcasts
@@ -77,16 +87,28 @@ while True:
 		serverUpdate = audioPlayer.get('data-sync-version')
 		if not os.path.exists("%s\\podcasts\\%s\\" % (sys.path[0], selCastShow)):
 			os.makedirs("%s\podcasts\\%s\\" % (sys.path[0], selCastShow))
-		with open ("%s\\podcasts\\%s\\%s.mp3" % (sys.path[0], selCastShow, audioPlayer.get("data-item-id")), "wb") as pFile:
+		
+		podHeaders = session.head(audioPlayer.find("source").get("src"))
+		while podHeaders.headers.get("Content-Type").find("audio") == -1:
+			podHeaders = session.head(podHeaders.headers.get("Location"))
+		print("The file is %s bytes." % podHeaders.headers.get("Content-Length"))
+		with open("%s\\podcasts\\%s\\%s.mp3" % (sys.path[0], selCastShow, audioPlayer.get("data-item-id")), "wb") as pFile:
 			try:
 				pResponse = session.get(audioPlayer.find("source").get("src"), stream=True)
 			except requests.exceptions.ConnectionError:
 				print("Connection Error!")
 				break
-			for chunk in pResponse.iter_content(1024):
+			counter = 0
+			total = round( int(podHeaders.headers.get("Content-Length")) / 1000, 2 )
+			for chunk in pResponse.iter_content(2048):
+				downloaded = (round((2048 * counter) /1000, 2))
+				print("%gmb out of %gmb. %g%% percent." % (downloaded,total, round((downloaded / total) * 100, 2)), end="\r")
 				pFile.write(chunk)
+				counter += 1
+		c.execute("INSERT INTO podcasts VALUES (?, ?, ?, ?, ?);", [audioPlayer.get("data-item-id"),audioPlayer.get("data-start-time"),selCastShow,selCastTitle,"%s\\podcasts\\%s\\%s.mp3" % (sys.path[0], selCastShow, audioPlayer.get("data-item-id"))])
 		break
 	elif (res == "n"):
 		break
 	else:
 		print("Invalid entry!")
+conn.commit()
