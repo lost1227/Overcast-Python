@@ -3,12 +3,10 @@ import sys
 import os
 import sqlite3
 import overcastLogin
+import vlc
 from bs4 import BeautifulSoup
 
 # Send the HTML POST request required to change the saved location in the serverUpdate
-# player is the webplayer html, time is the new time, and version is the version provided by the server
-def updateServers(player, time, version):
-	update = session.post("https://overcast.fm/podcasts/set_progress/%s" % player.get('data-item-id'), headers = { "Content-Type": "application/x-www-form-urlencoded" }, data = {"p": time, "speed": "0", "v": version } )
 	return update.text # the server provides the version number necessary to preform the next update request
 
 # Open the internet session with the required cookies
@@ -87,11 +85,6 @@ while True:
 				break
 			for chunk in pResponse.iter_content(1024):
 				pFile.write(chunk)
-		
-		# Test code to see if setting the time works as expected
-		serverUpdate = updateServers(audioPlayer, input("New Time?> "), serverUpdate)
-		print(serverUpdate)
-		
 		break
 	elif (res == "n"):
 		break
